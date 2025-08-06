@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audio Recorder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 30px 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    h1 {
+      font-size: 32px;
+      color: #0d47a1;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 14px 28px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      color: #fff;
+    }
+
+    #startBtn {
+      background: linear-gradient(to right, #43e97b, #38f9d7);
+    }
+
+    #stopBtn {
+      background: linear-gradient(to right, #ff416c, #ff4b2b);
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+
+    .timer {
+      font-size: 26px;
+      color: #ff5722;
+      font-weight: 600;
+      margin-top: 25px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .download-link a {
+      font-size: 18px;
+      color: #1565c0;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 25px;
+      display: none;
+      transition: color 0.3s;
+    }
+
+    .download-link a:hover {
+      color: #0d47a1;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Audio Recorder</h1>
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn" disabled>Stop Recording</button>
+    <div class="timer" id="timer">00:00</div>
+    <div class="download-link">
+      <a id="downloadLink">Download Audio</a>
+    </div>
+  </div>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let timerInterval;
+    let secondsElapsed = 0;
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const downloadLink = document.getElementById("downloadLink");
+    const timerElement = document.getElementById("timer");
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return (
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(remainingSeconds).padStart(2, "0")
+      );
+    }
+
+    function startTimer() {
+      secondsElapsed = 0;
+      timerElement.textContent = "00:00";
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        timerElement.textContent = formatTime(secondsElapsed);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    startBtn.addEventListener("click", async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          downloadLink.href = audioUrl;
+          downloadLink.download = "recording.webm";
+          downloadLink.style.display = "inline-block";
+          downloadLink.textContent = "⬇️ Download Audio";
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          stopTimer();
+        };
+
+        mediaRecorder.start();
+        startTimer();
+      } catch (error) {
+        console.error("Error accessing microphone:", error);
+        alert("Microphone access is required for recording.");
+      }
+    });
+
+    stopBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    });
+  </script>
+</body>
+</html>

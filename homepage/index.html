@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SoundSpace – Interactive Music Playground</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-top: 60px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 30px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 30px 0;
+    }
+
+    .btn {
+      position: relative;
+      background: #222;
+      color: #fff;
+      border: none;
+      padding: 16px 32px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+      z-index: 0;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: calc(100% + 4px);
+      height: calc(100% + 4px);
+      background: linear-gradient(45deg, #FF0000, #FF7300, #FFFB00, #48FF00, #00FFD5, #002BFF, #FF00C8, #FF0000);
+      background-size: 600%;
+      filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+      border-radius: 10px;
+      animation: glow 20s linear infinite;
+      z-index: -1;
+    }
+
+    .btn:hover::before {
+      opacity: 1;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+    }
+
+    @keyframes glow {
+      0% { background-position: 0 0; }
+      50% { background-position: 400% 0; }
+      100% { background-position: 0 0; }
+    }
+
+    .instructions {
+      background: rgba(0,0,0,0.3);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px;
+      max-width: 600px;
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 20px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    canvas {
+      position: fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="visual"></canvas>
+
+  <h1>🎵 SoundSpace</h1>
+  <p>Interactive Music Playground – Simulate, Play, Create!</p>
+
+  <div class="buttons">
+    <button class="btn" onclick="selectInstrument('piano')">🎹 Piano Mode</button>
+    <button class="btn" onclick="selectInstrument('drum')">🥁 Drum Mode</button>
+  </div>
+
+  <div class="instructions">
+    <h3>How to Play:</h3>
+    <p>
+      Press keyboard keys to play notes.<br>
+      Use <strong>[A S D F G H J]</strong> for Piano.<br>
+      Use <strong>[Q W E R T Y U]</strong> for Drums.<br>
+      Click a mode above to start!
+    </p>
+  </div>
+
+  <footer>
+    ~ By The Team BeatBytes
+  </footer>
+
+  <script>
+    // Instrument sound simulation
+    const pianoNotes = {
+      'a': 'https://freesound.org/data/previews/66/66717_931655-lq.mp3',
+      's': 'https://freesound.org/data/previews/66/66719_931655-lq.mp3',
+      'd': 'https://freesound.org/data/previews/66/66721_931655-lq.mp3',
+      'f': 'https://freesound.org/data/previews/66/66723_931655-lq.mp3',
+      'g': 'https://freesound.org/data/previews/66/66725_931655-lq.mp3',
+      'h': 'https://freesound.org/data/previews/66/66727_931655-lq.mp3',
+      'j': 'https://freesound.org/data/previews/66/66729_931655-lq.mp3'
+    };
+
+    const drumNotes = {
+      'q': 'https://freesound.org/data/previews/20/20067_51269-lq.mp3',
+      'w': 'https://freesound.org/data/previews/20/20068_51269-lq.mp3',
+      'e': 'https://freesound.org/data/previews/20/20069_51269-lq.mp3',
+      'r': 'https://freesound.org/data/previews/20/20070_51269-lq.mp3',
+      't': 'https://freesound.org/data/previews/20/20071_51269-lq.mp3',
+      'y': 'https://freesound.org/data/previews/20/20072_51269-lq.mp3',
+      'u': 'https://freesound.org/data/previews/20/20073_51269-lq.mp3'
+    };
+
+    let currentInstrument = null;
+
+    function selectInstrument(instrument) {
+      currentInstrument = instrument;
+      alert(`Switched to ${instrument} mode!`);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!currentInstrument) return;
+
+      const noteMap = currentInstrument === 'piano' ? pianoNotes : drumNotes;
+      const url = noteMap[e.key.toLowerCase()];
+      if (url) {
+        const audio = new Audio(url);
+        audio.play();
+        spawnVisual(e.key);
+      }
+    });
+
+    // Visual effects
+    const canvas = document.getElementById('visual');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function spawnVisual(char) {
+      for (let i = 0; i < 30; i++) {
+        particles.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          dx: (Math.random() - 0.5) * 8,
+          dy: (Math.random() - 0.5) * 8,
+          size: Math.random() * 4 + 2,
+          life: 100,
+          char: char
+        });
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach((p, i) => {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life--;
+        ctx.fillStyle = `rgba(255,255,255,${p.life/100})`;
+        ctx.font = `${p.size * 4}px Poppins`;
+        ctx.fillText(p.char, p.x, p.y);
+        if (p.life <= 0) particles.splice(i,1);
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
